@@ -1,3 +1,35 @@
+
 ---
-- debug:
-    msg: "hello cosmos"
+  - name: check current golang version
+    command: bash -c "/usr/local/go/bin/go version|sed -e 's/go version go//g'|cut -d' ' -f1"
+    ignore_errors: yes
+    register: installed_go_version
+    changed_when: false
+ 
+  - debug: msg="installed go_version={{installed_go_version.stdout}} ||||| desired go_version={{go_version}}"
+ 
+  - name: continue only when version is exact match
+    include_tasks: install-golang.yml
+    when: installed_go_version.stdout != go_version
+
+
+  - name: Install git
+    apt:
+      name: git
+      state: present
+      update_cache: yes
+
+
+  - name: Install vim
+    apt:
+      name: vim
+      state: present
+      update_cache: yes
+
+  - name: Build gaia
+    include_tasks: gaiad.yml
+
+  - name: Confifgure cosmoshub-4 
+    include_tasks: cosmoshub-config.yml
+
+

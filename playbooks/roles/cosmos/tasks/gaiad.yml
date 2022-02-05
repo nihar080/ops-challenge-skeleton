@@ -1,0 +1,23 @@
+---
+- name: "Cloning branch {{gaia_branch}} of gaia git repo"
+  git:
+    repo: 'https://github.com/cosmos/gaia'
+    dest: /srv/checkout
+    version: "{{ gaia_version }}"
+
+- name: Build gaia binary
+  shell: ". {{ home_dir }}/.bashrc && make install"
+  args:
+    chdir: /srv/checkout
+
+- name: validate Chain already initiated
+  stat:
+    path: "{{home_dir}}/.gaia/config/genesis.json"
+  register: gaiad_genesis_file
+
+- name: Init Chain
+  shell: ". {{ home_dir }}/.bashrc && gaiad init {{ node_name }}"
+  args:
+    chdir: /srv/checkout
+  when: not gaiad_genesis_file.stat.exists
+  

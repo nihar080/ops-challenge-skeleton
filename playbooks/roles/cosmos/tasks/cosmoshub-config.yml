@@ -1,0 +1,150 @@
+---
+  - name: Download cosmoshub-4 genesis.json
+    get_url:
+      url: "https://github.com/cosmos/mainnet/raw/master/genesis.cosmoshub-4.json.gz"
+      dest: "/tmp"
+      mode: 0440
+
+  - name: Delete genesis.cosmoshub-4.json file if exist
+    file:
+      path: /tmp/genesis.cosmoshub-4.json
+      state: absent
+
+  - name: unzip cosmoshub-4 genesis file
+    shell: "gzip -d genesis.cosmoshub-4.json.gz"
+    args:
+      chdir: /tmp
+
+  - name: Copy a cosmoshub-4 config to gaia home dir
+    ansible.builtin.copy:
+      src: /tmp/genesis.cosmoshub-4.json
+      dest: "{{home_dir}}/.gaia/config/genesis.json"
+      owner: root
+      group: root
+      mode: '0644'
+
+  # - name: setting persistent peers
+  #   community.general.ini_file: 
+  #     path: "{{ home_dir }}/.gaia/config/config.toml" 
+  #     section: p2p
+  #     option:  persistent_peers
+  #     value: "{{ persistent_peers | join(',') }}"
+  #     backup: yes
+
+  # - name: SetUp gas price
+  #   community.general.ini_file: 
+  #     path: "{{ home_dir }}/.gaia/config/app.toml" 
+  #     section: null
+  #     option: minimum-gas-prices 
+  #     value: "{{ minimum_gas_price }}"
+  #     backup: yes
+
+
+
+##Setup config
+  # - name: Set Minimum Gas Price
+  #   replace:
+  #     path: "{{ home_dir }}/.gaia/config/app.toml"
+  #     regexp: 'minimum-gas-prices = ""'
+  #     replace: 'minimum-gas-prices = "{{ minimum_gas_price }}"'
+  
+  # - name: Set persistent peers
+  #   replace:
+  #     path: "{{ home_dir }}/.gaia/config/config.toml"
+  #     regexp: 'persistent_peers = ""'
+  #     replace: 'persistent_peers = "{{ persistent_peers }}"'
+
+
+
+  # - name: Set enable state scan
+  #   replace:
+  #     path: "{{ home_dir }}/.gaia/config/app.toml"
+  #     regexp: 'enable = false'
+  #     replace: 'enable = true'
+
+  # - name: Set enable state scan
+  #   replace:
+  #     path: "{{ home_dir }}/.gaia/config/config.toml"
+  #     regexp: 'enable = false'
+  #     replace: 'enable = true'
+
+
+  # - name: Settrust_height
+  #   replace:
+  #     path: "{{ home_dir }}/.gaia/config/config.toml"
+  #     regexp: 'trust_height = 0'
+  #     replace: 'trust_height = 9311072'
+
+
+
+  # - name: Set trust_hash
+  #   replace:
+  #     path: "{{ home_dir }}/.gaia/config/config.toml"
+  #     regexp: 'trust_hash = ""'
+  #     replace: 'trust_hash = "AA112FFC38F6504BD90B3A39182F81DCC0ADC2FF7FDD550F6F0B215BEA812835"'
+
+  # - name: Set rpc servers
+  #   replace:
+  #     path: "{{ home_dir }}/.gaia/config/config.toml"
+  #     regexp: 'rpc_servers = ""'
+  #     replace: 'rpc_servers = "https://rpc.cosmos.network:443,https://rpc.cosmos.network:443"'
+
+
+  - name: Copy service unit file
+    template:
+      src: cosmos-node.service.j2
+      dest: "/lib/systemd/system/cosmos-node.service"
+      mode: '0644'
+      owner: root
+      group: root
+
+  - name: Copy app.toml file to config dir
+    template:
+      src: app.toml.j2
+      dest: "{{ home_dir }}/.gaia/config/app.toml"
+      mode: '0644'
+      owner: root
+      group: root
+
+  
+  - name: Copy app.toml file to config dir
+    template:
+      src: config.toml.j2
+      dest: "{{ home_dir }}/.gaia/config/config.toml"
+      mode: '0644'
+      owner: root
+      group: root
+
+  # When systemd service script is added or modified, reload the systemctl daemon
+  - name: Run systemctl daemon-reload
+    command: systemctl daemon-reload
+    # when: cosmos_systemd_service_file|changed
+
+
+  # - name: Set a fact to ensure restart of the 'cv-datacollector' service
+  #   set_fact:
+  #     register_restart_cv_cosmos_service: true
+  #   when: >
+  #     cosmos_systemd_service_file|changed
+
+  - name: Ensure the 'cosmos-node' service is stopped
+    service:
+      name: cosmos-node
+      state: stopped
+
+  - name: Ensure the 'cosmos-node' service is enabled at boot
+    service:
+      name: cosmos-node
+      enabled: yes
+
+  - name: Ensure the 'cosmos-node' service is started
+    service:
+      name: cosmos-node
+      state: started
+
+  # - name: Restart the 'cosmos-node' service
+  #   service:
+  #     name: cosmos-node
+  #     state: restarted
+  #   when:
+  #     - register_restart_cv_cosmos_service

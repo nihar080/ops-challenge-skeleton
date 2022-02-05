@@ -1,0 +1,21 @@
+[Unit]
+Description=Cosmos hub -4 node.
+After=syslog.target \
+      network.target 
+Wants=syslog.target \
+      network.target 
+Requires=network.target 
+StartLimitBurst=5
+StartLimitIntervalSec=3600
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User={{ node_user }}
+Group={{ node_user }}
+ExecStart={{ home_dir }}/go/bin/gaiad start --x-crisis-skip-assert-invariants
+SyslogIdentifier=COSMOS-NODE-{{ node_name }}
+
+[Install]
+WantedBy=multi-user.target
